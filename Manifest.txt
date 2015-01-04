@@ -1,0 +1,7 @@
+History.txt
+Manifest.txt
+README.txt
+Rakefile
+bin/ping_pong_pear
+lib/ping_pong_pear.rb
+test/test_ping_pong_pear.rb
