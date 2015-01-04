@@ -19,6 +19,27 @@ module PingPongPear
       new.send ['commit', my_public_address.ip_address, HTTP_PORT, name]
     end
 
+    def self.send_location name
+      new.send ['source', name, my_public_address.ip_address, HTTP_PORT]
+    end
+
+    def self.where_is? name
+      listener_t = Thread.new {
+        listener = Listener.new
+        listener.start { |cmd, *rest|
+          if cmd == 'source' && rest.first == name
+            break(rest.drop(1))
+          end
+        }
+      }
+      broadcast = new
+      while listener_t.alive?
+        broadcast.send ['locate', name]
+      end
+      addr, port = listener_t.value
+      "http://#{addr}:#{port}/"
+    end
+
     def initialize
       @multicast_addr = MULTICAST_ADDR
       @port           = UDP_PORT
@@ -70,11 +91,17 @@ module PingPongPear
       }
       File.chmod 0755, post_commit_hook
 
-      server = WEBrick::HTTPServer.new Port: HTTP_PORT, DocumentRoot: '.git'
-      listener = PingPongPear::Listener.new
-      listener.start { |cmd, *args|
-        p cmd
+      Thread.new {
+        listener = PingPongPear::Listener.new
+        listener.start { |cmd, *rest|
+          if cmd == 'locate' && rest.first == project_name
+            Broadcaster.send_location project_name
+          end
+        }
       }
+
+      server = WEBrick::HTTPServer.new Port: HTTP_PORT, DocumentRoot: '.git'
+
       trap('INT') {
         File.unlink post_commit_hook
         server.shutdown
@@ -82,7 +109,11 @@ module PingPongPear
       server.start
     end
 
-    def self.clone
+    def self.clone args
+      require 'shellwords'
+      name = args.first
+      url = PingPongPear::Broadcaster.where_is? name
+      system "git clone #{Shellwords.escape(url)} #{Shellwords.escape(name)}"
     end
 
     def self.update args
