@@ -109,7 +109,7 @@ module PingPongPear
           when 'commit'
             unless rest.first == uuid
               url = "http://#{rest.drop(1).join(':')}"
-              system "git pull #{url}"
+              system "git pull #{Shellwords.escape(url)}"
             end
           end
         }
