@@ -4,7 +4,6 @@ require 'json'
 
 module PingPongPear
   VERSION        = '1.0.0'
-  HTTP_PORT      = 4544
   UDP_PORT       = 4545
   MULTICAST_ADDR = "224.0.0.1"
 
@@ -15,12 +14,13 @@ module PingPongPear
       }.first
     end
 
-    def self.send_update name
-      new.send ['commit', my_public_address.ip_address, HTTP_PORT, name]
+    def self.send_update args
+      puts "SENDING UPDATE #{args}"
+      new.send ['commit'] + args
     end
 
-    def self.send_location name
-      new.send ['source', name, my_public_address.ip_address, HTTP_PORT]
+    def self.send_location name, port
+      new.send ['source', name, my_public_address.ip_address, port]
     end
 
     def self.where_is? name
@@ -78,29 +78,41 @@ module PingPongPear
   module Commands
     def self.start args
       require 'webrick'
+      require 'securerandom'
 
-      project_name = args.first || File.basename(Dir.pwd)
+      project_name     = args.first || File.basename(Dir.pwd)
       post_commit_hook = '.git/hooks/post-commit'
+      uuid             = SecureRandom.uuid
 
       system 'git update-server-info'
+
+      server = WEBrick::HTTPServer.new Port: 0, DocumentRoot: '.git'
+      http_port = server.listeners.map { |x| x.addr[1] }.first
+
       File.open(post_commit_hook, 'w') { |f|
         f.puts "#!/usr/bin/env ruby"
         f.puts "ARGV[0] = 'update'"
         f.puts "ARGV[1] = '#{project_name}'"
+        f.puts "ARGV[2] = '#{uuid}'"
+        f.puts "ARGV[3] = '#{Broadcaster.my_public_address.ip_address}'"
+        f.puts "ARGV[4] = '#{http_port}'"
         f.write File.read __FILE__
       }
       File.chmod 0755, post_commit_hook
 
       Thread.new {
         listener = PingPongPear::Listener.new
-        listener.start { |cmd, *rest|
-          if cmd == 'locate' && rest.first == project_name
-            Broadcaster.send_location project_name
+        listener.start { |cmd, name, *rest|
+          if cmd == 'locate' && name == project_name
+            Broadcaster.send_location project_name, http_port
+          end
+
+          if cmd == 'commit' && name == project_name && rest.first != uuid
+            url = "http://#{rest.drop(1).join(':')}"
+            system "git pull #{url} master"
           end
         }
       }
-
-      server = WEBrick::HTTPServer.new Port: HTTP_PORT, DocumentRoot: '.git'
 
       trap('INT') {
         File.unlink post_commit_hook
@@ -117,7 +129,8 @@ module PingPongPear
     end
 
     def self.update args
-      PingPongPear::Broadcaster.send_update args.first
+      system 'git update-server-info'
+      PingPongPear::Broadcaster.send_update args
     end
 
     def self.run args
