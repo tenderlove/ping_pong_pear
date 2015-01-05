@@ -103,13 +103,15 @@ module PingPongPear
       Thread.new {
         listener = PingPongPear::Listener.new
         listener.start { |cmd, name, *rest|
-          if cmd == 'locate' && name == project_name
-            Broadcaster.send_location project_name, http_port
-          end
+          next unless name == project_name
 
-          if cmd == 'commit' && name == project_name && rest.first != uuid
-            url = "http://#{rest.drop(1).join(':')}"
-            system "git pull #{url} master"
+          case cmd
+          when 'locate' then Broadcaster.send_location project_name, http_port
+          when 'commit'
+            unless rest.first == uuid
+              url = "http://#{rest.drop(1).join(':')}"
+              system "git pull #{url}"
+            end
           end
         }
       }
