@@ -25,10 +25,8 @@ module PingPongPear
     def self.where_is? name
       listener_t = Thread.new {
         listener = Listener.new
-        listener.start { |cmd, *rest|
-          if cmd == 'source' && rest.first == name
-            break(rest.drop(1))
-          end
+        listener.start { |cmd, n, *rest|
+          break(rest) if cmd == 'source' && n == name
         }
       }
       broadcast = new
@@ -87,13 +85,14 @@ module PingPongPear
 
       server = WEBrick::HTTPServer.new Port: 0, DocumentRoot: '.git'
       http_port = server.listeners.map { |x| x.addr[1] }.first
+      my_address = Broadcaster.my_public_address.ip_address
 
       File.open(post_commit_hook, 'w') { |f|
         f.puts "#!/usr/bin/env ruby"
         f.puts "ARGV[0] = 'update'"
         f.puts "ARGV[1] = '#{project_name}'"
         f.puts "ARGV[2] = '#{uuid}'"
-        f.puts "ARGV[3] = '#{Broadcaster.my_public_address.ip_address}'"
+        f.puts "ARGV[3] = '#{my_address}'"
         f.puts "ARGV[4] = '#{http_port}'"
         f.write File.read __FILE__
       }
