@@ -15,7 +15,6 @@ module PingPongPear
     end
 
     def self.send_update args
-      puts "SENDING UPDATE #{args}"
       new.send ['commit'] + args
     end
 

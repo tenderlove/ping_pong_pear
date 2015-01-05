@@ -8,7 +8,7 @@ Hoe.plugin :minitest
 Hoe.plugin :gemspec # `gem install hoe-gemspec`
 Hoe.plugin :git     # `gem install hoe-git`
 
-Hoe.spec 'ping_pong_pear' do
+Hoe.spec 'pingpongpear' do
   developer('Aaron Patterson', 'aaron@tenderlovemaking.com')
   self.readme_file   = 'README.rdoc'
   self.history_file  = 'CHANGELOG.rdoc'
