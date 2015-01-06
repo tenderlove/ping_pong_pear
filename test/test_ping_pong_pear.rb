@@ -78,6 +78,23 @@ class TestPingPongPear < MiniTest::Test
     Process.waitpid pid
   end
 
+  def boot
+    stderr_rd, stderr_wr = IO.pipe
+    stdout_rd, stdout_wr = IO.pipe
+    pid = fork {
+      $stderr.reopen stderr_wr
+      $stdout.reopen stdout_wr
+      PingPongPear::Commands.run ['start']
+    }
+    stderr_wr.close
+    stdout_wr.close
+    loop do
+      line = stderr_rd.readline
+      break if line =~ /WEBrick::HTTPServer#start/
+    end
+    [pid, stderr_rd, stdout_rd]
+  end
+
   def test_commit
     system 'git init'
     File.write 'out.txt', 'aset'
@@ -85,29 +102,19 @@ class TestPingPongPear < MiniTest::Test
     system 'git commit -m"xx"'
 
     project_name = File.basename Dir.pwd
-    stderr_rd, stderr_wr = IO.pipe
-    pid = fork {
-      $stderr.reopen stderr_wr
-      PingPongPear::Commands.run ['start']
-    }
-    stderr_wr.close
-    loop do
-      line = stderr_rd.readline
-      break if line =~ /WEBrick::HTTPServer#start/
-    end
+    pid, err, out = boot
 
     original_dir = File.expand_path Dir.pwd
     Dir.chdir Dir.mktmpdir
     PingPongPear::Commands.run ['clone', project_name]
-    Dir.chdir project_name
+    pid2 = nil
+    Dir.chdir(project_name) do
+      pid2, = boot
 
-    pid2 = fork { PingPongPear::Commands.run ['start'] }
-    loop do
-      break if File.exist? '.git/hooks/post-commit'
+      File.write 'out2.txt', 'ddddd'
+      system 'git add out2.txt'
+      system 'git commit -m"xx"'
     end
-    File.write 'out2.txt', 'ddddd'
-    system 'git add out2.txt'
-    system 'git commit -m"xx"'
     require 'timeout'
     Timeout.timeout(2) {
       loop do
@@ -141,7 +148,8 @@ class TestPingPongPear < MiniTest::Test
     end
 
     original_dir = File.expand_path Dir.pwd
-    Dir.chdir Dir.mktmpdir
+    newdir = Dir.mktmpdir
+    Dir.chdir newdir
     PingPongPear::Commands.run ['clone', project_name]
     Dir.chdir project_name
 
@@ -150,7 +158,7 @@ class TestPingPongPear < MiniTest::Test
       break if File.exist? '.git/hooks/post-commit'
     end
     File.write 'out2.txt', 'ddddd'
-    system 'git checkout -b xxx'
+    system 'git checkout xxx'
     system 'git add out2.txt'
     system 'git commit -m"xx"'
     require 'timeout'

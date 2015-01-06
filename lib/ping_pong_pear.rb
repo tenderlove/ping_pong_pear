@@ -18,8 +18,8 @@ module PingPongPear
       new.send ['commit'] + args
     end
 
-    def self.send_location name, port
-      new.send ['source', name, my_public_address.ip_address, port]
+    def self.send_location name, address, port
+      new.send ['source', name, address, port]
     end
 
     def self.where_is? name
@@ -76,6 +76,7 @@ module PingPongPear
     def self.start args
       require 'webrick'
       require 'securerandom'
+      require 'shellwords'
 
       project_name     = args.first || File.basename(Dir.pwd)
       post_commit_hook = '.git/hooks/post-commit'
@@ -104,7 +105,7 @@ module PingPongPear
           next unless name == project_name
 
           case cmd
-          when 'locate' then Broadcaster.send_location project_name, http_port
+          when 'locate' then Broadcaster.send_location project_name, my_address, http_port
           when 'commit'
             unless rest.first == uuid
               url = "http://#{rest.drop(1).join(':')}"
