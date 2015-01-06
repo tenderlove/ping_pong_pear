@@ -1,7 +1,8 @@
-History.txt
+.autotest
+CHANGELOG.rdoc
 Manifest.txt
-README.txt
+README.rdoc
 Rakefile
-bin/ping_pong_pear
+bin/pingpongpear
 lib/ping_pong_pear.rb
 test/test_ping_pong_pear.rb
