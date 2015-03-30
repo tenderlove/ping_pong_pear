@@ -7,6 +7,8 @@ require 'logger'
 require 'shellwords'
 
 class PingPongPear
+  VERSION = '1.0.0'
+
   SERVICE = "_http._tcp,pingpongpear"
 
   def self.run args

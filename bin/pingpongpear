@@ -1,4 +1,4 @@
 #!/usr/bin/env ruby
 
 require 'ping_pong_pear'
-PingPongPear::Commands.run ARGV
+PingPongPear.run(ARGV)
