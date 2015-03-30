@@ -1,26 +1,30 @@
 = ping_pong_pear
 
-* FIX (url)
+* http://github.com/tenderlove/pingpongpear
 
 == DESCRIPTION:
 
-FIX (describe your package)
+It is for ping pong pearing
 
 == FEATURES/PROBLEMS:
 
-* FIX (list of features or problems)
+* many
 
 == SYNOPSIS:
 
-  FIX (code sample of usage)
+$ pingpongpear start team_fun
 
-== REQUIREMENTS:
+Other machine:
 
-* FIX (list of requirements)
+$ pingpongpear clone team_fun
+$ cd team_fun
+$ pingpongpear start
+
+Then start pairing
 
 == INSTALL:
 
-* FIX (sudo gem install, anything else)
+* gem install pingpongpear
 
 == LICENSE:
 
