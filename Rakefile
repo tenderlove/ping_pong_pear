@@ -13,6 +13,7 @@ Hoe.spec 'pingpongpear' do
   self.readme_file   = 'README.rdoc'
   self.history_file  = 'CHANGELOG.rdoc'
   self.extra_rdoc_files  = FileList['*.rdoc']
+  self.extra_deps << ['dnssd',          '~> 3.0']
 end
 
 # vim: syntax=ruby
