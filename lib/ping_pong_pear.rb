@@ -13,6 +13,12 @@ class PingPongPear
 
   def self.run args
     new.public_send args.first, *args.drop(1)
+  rescue
+    cmds = public_instance_methods(false).find_all { |x|
+      instance_method(x).arity < 0
+    }
+    $stderr.puts "USAGE: pingpongpear #{cmds}"
+    exit 1
   end
 
   attr_reader :pull_requests, :peers, :logger
@@ -53,6 +59,8 @@ kill -INFO $(cat #{pidfile})
 
     identifier    = make_ident name
 
+    logger.info "SEND THIS TO YOUR PEAR `git clone #{name}`"
+    logger.info "CTRL-T sends pull requests to all peers"
     logger.debug "MY PROJECT NAME: #{name} IDENT: #{identifier}"
 
     server        = start_server pull_requests
