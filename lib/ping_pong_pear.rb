@@ -25,7 +25,7 @@ class PingPongPear
 
   def initialize
     @pull_requests      = Queue.new
-    @send_pull_requests = Queue.new
+    @send_pull_requests = []
     @peers              = Set.new
     @logger             = Logger.new $stdout
   end
@@ -69,9 +69,12 @@ kill -INFO $(cat #{pidfile})
 
     discover identifier, name, peers
     process_pull_requests pull_requests
-    process_send_pull_requests @send_pull_requests
+    t = process_send_pull_requests @send_pull_requests
 
-    trap('INFO') { send_pull_requests peers, hostname, http_port }
+    trap('INFO') {
+      send_pull_requests peers, hostname, http_port
+      t.wakeup
+    }
 
     advertise(identifier, name, hostname, http_port).each { |x| x }
   end
@@ -143,12 +146,16 @@ kill -INFO $(cat #{pidfile})
 
   def process_send_pull_requests requests
     Thread.new do
-      while pr = requests.pop
-        host, port, http_host, http_port = *pr
-        http    = Net::HTTP.new host, port
-        request = Net::HTTP::Post.new '/pull'
-        request.set_form_data 'host' => http_host, 'port' => http_port
-        http.request request
+      loop do
+        requests.each do |pr|
+          host, port, http_host, http_port = *pr
+          http    = Net::HTTP.new host, port
+          request = Net::HTTP::Post.new '/pull'
+          request.set_form_data 'host' => http_host, 'port' => http_port
+          http.request request
+        end
+        requests.clear
+        Thread.stop
       end
     end
   end
