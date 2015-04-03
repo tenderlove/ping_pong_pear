@@ -7,7 +7,7 @@ require 'logger'
 require 'shellwords'
 
 class PingPongPear
-  VERSION = '2.0.1'
+  VERSION = '2.0.2'
 
   SERVICE = "_http._tcp,pingpongpear"
 
